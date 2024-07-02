@@ -1,24 +1,43 @@
-const { src, dest, watch, series, parallel } = require('gulp')
+const { src, dest, watch, series, parallel } = require('gulp');
 
-//Dependencias CSS y SASS
+// Dependencias CSS y SASS
 const sass = require('gulp-sass')(require('sass'));
 const postcss = require('gulp-postcss');
 const autoprefixer = require('autoprefixer');
 
-//img
+// img
 async function imagenes(done) {
-    const { default: imagemin } = await import('gulp-imagemin'); // Importación dentro de la función
-  
+    const { default: imagemin } = await import('gulp-imagemin');
+
     src('src/img/**/*')
-      .pipe(imagemin({ optimizationlevel: 3 }))
-      .pipe(dest('build/img'));
-  
+        .pipe(imagemin({ optimizationlevel: 3 }))
+        .pipe(dest('build/img'));
+
     done();
-  }
+}
+const webp = require('gulp-webp');
+const avif = require('gulp-avif');
+
+function webpTask() {
+    const opciones = {
+        quality: 50
+    };
+    return src('src/img/**/*.{jpg,png}')
+        .pipe(webp(opciones))
+        .pipe(dest('build/img'));
+}
+
+function versionAvif() {
+    const opciones = {
+        quality: 50
+    };
+    return src('src/img/**/*.{jpg}')
+        .pipe(avif(opciones))
+        .pipe(dest('build/img'))
+}
 
 function css(done) {
     // Compilar SASS
-    // Step 1: Identificar archivos. Step 2: Compilar. Step 3: Guardar el .css
     src('src/scss/app.scss')
         .pipe(sass())
         .pipe(dest('build/css'))
@@ -27,18 +46,14 @@ function css(done) {
     done();
 }
 
-exports.css = css;
 function dev() {
-    watch('src/scss/**/*.scss', (cb) => {
-        css(cb); // Llama a la función css y pasa la devolución de llamada
-    });
+    watch('src/scss/**/*.scss', css);
     watch('src/img/**/*', imagenes);
 }
 
 exports.css = css;
 exports.dev = dev;
 exports.imagenes = imagenes;
-exports.default = series(imagenes, css, dev);
-
-// series -  Se inicia una tarea y cuando termina, inica la siguiente
-// pararell - Todas las tareas inician al mismo tiempo
+exports.webpTask = webpTask;
+exports.versionAvif = versionAvif;
+exports.default = series(imagenes, webpTask, versionAvif, css, dev);
